@@ -46,17 +46,17 @@
             color: #000000;
             margin-top: 4px;
         }
-        /* 1. Horizontal Date Slider Section */
+        /* Horizontal Date Slider Section */
         .date-slider {
             display: flex;
             gap: 12px;
             overflow-x: auto;
             padding-bottom: 15px;
             margin-bottom: 25px;
-            scrollbar-width: none; /* Hilangin scrollbar di Firefox */
+            scrollbar-width: none;
         }
         .date-slider::-webkit-scrollbar {
-            display: none; /* Hilangin scrollbar di Chrome/Safari */
+            display: none;
         }
         .date-item {
             flex: 0 0 55px;
@@ -80,7 +80,7 @@
             font-weight: 700;
             color: #1c1c1e;
         }
-        /* Style pas Tanggal di-klik / Aktif */
+        /* Style pas Tanggal Aktif */
         .date-item.active {
             background-color: #2f80ed;
             box-shadow: 0 8px 16px rgba(47, 128, 237, 0.25);
@@ -108,7 +108,7 @@
             font-weight: 500;
             margin-top: 40px;
         }
-        /* 2. Vertical Timeline Section */
+        /* Vertical Timeline Section */
         .timeline-container {
             position: relative;
             flex-grow: 1;
@@ -137,7 +137,7 @@
             top: 22px;
             z-index: 2;
         }
-        /* 3. Content Card Style */
+        /* Content Card Style */
         .content-card {
             flex-grow: 1;
             margin-left: 28px;
@@ -147,7 +147,7 @@
             border: 1px solid #eef2f6;
             transition: all 0.3s ease;
         }
-        /* Card Pertama/Utama otomatis berwarna Biru sesuai mockup */
+        /* Highlight Card Pertama */
         .timeline-item:nth-child(1) .content-card {
             background: #2f80ed;
             color: #ffffff;
@@ -178,10 +178,10 @@
             color: rgba(255,255,255,0.9);
             background: rgba(255,255,255,0.2);
         }
-        /* Detail List di dalam Card */
+        /* Detail List */
         .card-details {
-            display: grid;
-            grid-template-columns: 1fr;
+            display: flex;
+            flex-direction: column;
             gap: 6px;
             font-size: 12px;
             border-top: 1px solid #e5e5ea;
@@ -200,7 +200,7 @@
             font-weight: 600;
             text-align: right;
         }
-        /* Bottom Tab Bar Navigation Mockup */
+        /* Navigation Mockup */
         .bottom-nav {
             display: flex;
             justify-content: space-around;
@@ -212,7 +212,6 @@
         .nav-icon {
             width: 24px;
             height: 24px;
-            cursor: pointer;
             opacity: 0.4;
         }
         .nav-icon.active {
@@ -259,14 +258,13 @@
 </div>
 
 <script>
-    // Taruh URL Web App Apps Script lu di bawah ini!
+    // URL Web App lu sudah otomatis terpasang di sini
     const webAppUrl = 'https://script.google.com/macros/s/AKfycbwpkn1SQevB1HrWHrytZfBel7SNmfd6k6yGz0mQ-w1DaF9oUOUEbYnhpUmlEm020NW1aQ/exec';
 
     let masterData = [];
     let uniqueDates = [];
     let activeDate = '';
 
-    // Set teks hari ini di header atas
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('liveDate').innerText = new Date().toLocaleDateString('en-US', options);
 
@@ -282,8 +280,7 @@
 
             masterData = data.tableData;
 
-            // 1. Ekstrak Semua Tanggal Unik dari Kolom UPLOAD pertama
-            // Kita cari nama key yang mengandung kata 'UPLOAD' tapi bukan yang kembar kedua ('UPLOAD_2')
+            // Cari kolom Tanggal UPLOAD pertama
             const dateKey = data.headers.find(h => h.toUpperCase() === 'UPLOAD') || data.headers[0];
             uniqueDates = [...new Set(masterData.map(item => item[dateKey]).filter(Boolean))];
 
@@ -292,13 +289,10 @@
                 return;
             }
 
-            // Set tanggal aktif pertama kali ke index 0 atau hari ini kalau ada
+            // Set tanggal aktif default ke tanggal pertama yang tersedia
             activeDate = uniqueDates[0];
 
-            // 2. Render Slider Tanggal
             renderDateSlider(dateKey);
-
-            // 3. Render list timeline pertama kali
             renderTimeline(activeDate, dateKey);
 
             document.getElementById('loading').style.display = 'none';
@@ -306,21 +300,19 @@
 
         } catch (error) {
             console.error(error);
-            document.getElementById('loading').innerText = "Gagal mengambil data database.";
+            document.getElementById('loading').innerText = "Gagal mengambil data database. Pastikan akses deployment sudah di-set ke 'Anyone'.";
         }
     }
 
     function renderDateSlider(dateKey) {
         const slider = document.getElementById('dateSlider');
         slider.innerHTML = '';
-
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
         uniqueDates.forEach(dateStr => {
             let displayDay = "Id";
-            let displayNum = dateStr.split(/[-/]/)[0]; // Ambil angka tanggal depannya aja
+            let displayNum = dateStr.split(/[-/]/)[0];
 
-            // Coba parsing hari asli dari string tanggal Google Sheets (Format: 02-Jul-2026 atau 02/07/2026)
             let parsedDate = new Date(dateStr.replace(/-/g, ' '));
             if (!isNaN(parsedDate.getTime())) {
                 displayDay = dayNames[parsedDate.getDay()];
@@ -350,7 +342,6 @@
         const listContainer = document.getElementById('timelineList');
         listContainer.innerHTML = '';
 
-        // Saring data berdasarkan tanggal yang di-klik di slider
         const filtered = masterData.filter(row => row[dateKey] === targetDate);
 
         if (filtered.length === 0) {
@@ -358,7 +349,7 @@
             return;
         }
 
-        // Helper untuk mempermudah pencarian key Object yang ga sensitif huruf besar/kecil
+        // Helper anti-error huruf besar kecil kolom
         const getVal = (obj, keyName) => {
             const foundKey = Object.keys(obj).find(k => k.replace(/_\d+$/, '').toUpperCase() === keyName.toUpperCase());
             return foundKey ? obj[foundKey] : '-';
@@ -368,18 +359,17 @@
             const item = document.createElement('div');
             item.className = 'timeline-item';
 
-            // Ambil semua field yang lu minta secara presisi
             let judul = getVal(row, 'JUDUL KONTEN');
             let jam = getVal(row, 'JAM');
             let akun = getVal(row, 'AKUN');
             let jenis = getVal(row, 'JENIS KONTEN');
             let producer = getVal(row, 'PRODUCER');
-            let writing = getVal(row, 'WRITING'); // Isinya emot centang dari Apps script
+            let writing = getVal(row, 'WRITING');
             let shooting = getVal(row, 'SHOOTING');
             let pic = getVal(row, 'PIC PRODUKSI');
-            let produksi = getVal(row, 'PRODUCTION'); // Isinya emot centang dari Apps script
-            let statusUpload = getVal(row, 'UPLOAD_2'); // Kolom UPLOAD kedua (K)
-            let brand = getVal(row, 'BRAND TAP IN'); 
+            let produksi = getVal(row, 'PRODUCTION');
+            let statusUpload = getVal(row, 'UPLOAD_2'); // Mengambil kolom UPLOAD kedua (K)
+            let brand = getVal(row, 'BRAND TAP IN');
             let catatan = getVal(row, 'CATATAN');
 
             item.innerHTML = `
@@ -407,7 +397,6 @@
         });
     }
 
-    // Eksekusi kode pas web dibuka
     loadTimelineData();
 </script>
 </body>
